@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { getSessions, getMessages, createSession, sendMessage, getLastMessageForSession } from '../utils/api'
 import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
@@ -13,6 +13,21 @@ function Chat() {
   const [currentSession, setCurrentSession] = useState(null)
   const [newMessage, setNewMessage] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const messagesEndRef = useRef(null);
+  const [sortOrder, setSortOrder] = useState('newest');
+
+
+
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+  
+  
+
 
   // const messagesEndRef = useRef(null);
   // const scrollToBottom = () => {
@@ -36,11 +51,11 @@ function Chat() {
   const loadSessions = async () => {
     try {
       const response = await getSessions(); 
-      const sortedSessions = response.sessions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort sessions by createdAt
+      // const sortedSessions = response.sessions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort sessions by createdAt
       
       
       // Update sessions with last message
-      const sessionsWithLastMessage = await Promise.all(sortedSessions.map(async (session) => {
+      let sessionsWithLastMessage = await Promise.all(response.sessions.map(async (session) => {
         let lastMessage = await getLastMessageForSession(session.documentId); // Call your function here
         if(lastMessage.data[0]==undefined){
           lastMessage="";
@@ -51,6 +66,8 @@ function Chat() {
         return { ...session, lastMessage};
       }));
       
+      // Sort sessions based on `sortOrder`
+      sessionsWithLastMessage = sortSessions(sessionsWithLastMessage, sortOrder);
 
       setSessions(sessionsWithLastMessage) // Set sorted sessions
       const storedSessionId = localStorage.getItem('currentSessionId');
@@ -96,6 +113,18 @@ function Chat() {
     localStorage.removeItem('currentSessionId')
     navigate('/login')
   }
+
+  const sortSessions = (sessions, order) => {
+    return sessions.sort((a, b) => {
+      if (order === 'newest') {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      } else if (order === 'oldest') {
+        return new Date(a.createdAt) - new Date(b.createdAt);
+      }
+      return 0;
+    });
+  };
+  
 
   const CreateNewSession = async ()=>{
     try {
@@ -197,14 +226,22 @@ function Chat() {
             <div className="flex-1 overflow-y-auto">
                 <div className="p-4">
                     <h2 className="text-2xl font-semibold mb-4">Chat Sessions</h2>
-                    <div className="relative mb-4">
+                    {/* <div className="relative mb-4">
                         <input className="w-full p-2 border rounded" type="text" placeholder="Search" />
                         <i className="fas fa-search absolute right-3 top-3 text-gray-400"></i>
-                    </div>
+                    </div> */}
                     <div className="mb-4">
                         <span className="text-gray-500">Sort by</span>
-                        <select className="ml-2 border rounded">
-                            <option>Newest</option>
+                        <select 
+                          className="ml-2 border rounded"
+                          value={sortOrder}
+                          onChange={(e) => {
+                            setSortOrder(e.target.value);
+                            setSessions(sortSessions([...sessions], e.target.value)); // Sort sessions dynamically
+                          }}
+                        >
+                          <option value="newest">Newest First</option>
+                          <option value="oldest">Oldest First</option>
                         </select>
                     </div>
                     <div className="space-y-4">
@@ -217,7 +254,7 @@ function Chat() {
                               currentSession?.id === session.id ? 'bg-gray-100' : ''
                             }`}
                           >
-                            <img className="w-10 h-10 rounded-full" src="https://storage.googleapis.com/a1aa/image/VDITCKRe3FRJJapQ121lNyfXgMDDwfLZCbEY445YaTw3uzQoA.jpg" alt="John Doe's profile picture" width="40" height="40" />
+                            <img className="w-10 h-10 rounded-full" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQXGY9PJvj1zV3UIDnLBY_fDh9SpEByAUjg5w&s" alt="John Doe's profile picture" width="40" height="40" />
                             <div className="flex-1 min-w-0">
                                 <span className="block font-semibold truncate" title={formatDate(session.sessionName)}>Session {formatDate(session.sessionName)}</span>
                               <div className="flex justify-between items-center">
@@ -255,7 +292,7 @@ function Chat() {
                 
                 
                 <div className="flex items-center space-x-4">
-                    <img className="w-10 h-10 rounded-full" src="https://storage.googleapis.com/a1aa/image/Q7U8GLyJPt7iIFk5JkqkKJ34Lamyd9ErhNgsSeDC1Cur7MEKA.jpg" alt="Travis Barker's profile picture" width="40" height="40" />
+                    <img className="w-10 h-10 rounded-full" src="https://i.pinimg.com/736x/45/fc/04/45fc047a4d037ea0e090b341a46ff4e9.jpg" alt="Travis Barker's profile picture" width="40" height="40" />
                     <div>
                         <h2 className="text-lg font-semibold">
                           {currentSession ? currentSession.sessionName : 'Select a session'}
@@ -295,6 +332,9 @@ function Chat() {
                         ))}
 
                 </div>
+
+                <div ref={messagesEndRef} />
+
             </div>
             <div className="p-4 bg-white border-t flex items-center">
                 <input 
