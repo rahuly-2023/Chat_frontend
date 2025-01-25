@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { io } from "socket.io-client";
 
-const socket = io('http://localhost:1337'); // Connect to the WebSocket server
+const socket = io(`${import.meta.env.VITE_API_URL}`); // Connect to the WebSocket server
 
 function Chat() {
   const navigate = useNavigate()
