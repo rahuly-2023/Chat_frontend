@@ -6,12 +6,13 @@ import Chat from './pages/Chat'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
+  const token = localStorage.getItem('token')
   return (
     <>
       <Toaster position="top-center" />
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={token ? <Navigate to="/chat" replace /> : <Login />}/>
+        <Route path="/register" element={token ? <Navigate to="/chat" replace /> : <Register />} />
         <Route 
           path="/chat" 
           element={

@@ -1,4 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL;
+import toast from 'react-hot-toast'
 
 export const login = async (identifier, password) => {
   const payload = { identifier, password };
@@ -50,7 +51,15 @@ export const getSessions = async () => {
 
   if (!response.ok) {
     const errorResponse = await response.json(); // Get the error response
-    throw new Error(`Network response was not ok: ${errorResponse.message}`);
+    console.log(errorResponse);
+    if(errorResponse.error.status==401){
+      toast.error("Unauthorized user");
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      localStorage.removeItem('currentSessionId')
+      navigate('/login')
+    }
+    throw new Error(`Network response was not ok: ${errorResponse.error}`);
   }
 
   return response.json(); // Return the entire response object
