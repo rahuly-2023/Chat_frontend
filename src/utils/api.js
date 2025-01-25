@@ -51,14 +51,6 @@ export const getSessions = async () => {
 
   if (!response.ok) {
     const errorResponse = await response.json(); // Get the error response
-    console.log(errorResponse);
-    if(errorResponse.error.status==401){
-      toast.error("Unauthorized user");
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      localStorage.removeItem('currentSessionId')
-      navigate('/login')
-    }
     throw new Error(`Network response was not ok: ${errorResponse.error}`);
   }
 
