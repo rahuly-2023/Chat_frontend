@@ -76,18 +76,19 @@ export const getMessages = async (sessionId) => {
 };
 
 export const createSession = async () => {
-  const UserId = JSON.parse(localStorage.getItem('user')).documentId;
   const token = localStorage.getItem('token');
+  const UserId = JSON.parse(localStorage.getItem('user'));
+  if(!UserId || !token){
+    throw new Error(`User Unauthorized. Login again`);
+  }
   const response = await fetch(`${API_URL}/api/sessions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`
     },
-    body: JSON.stringify({"data":{"user":UserId, "sessionName":`Session - ${new Date().toLocaleString()}`}})
+    body: JSON.stringify({"data":{"user":UserId.documentId, "sessionName":`Session - ${new Date().toLocaleString()}`}})
   });
-
-
   if (!response.ok) {
     const errorResponse = await response.json(); // Get the error response
     throw new Error(`Network response was not ok: ${errorResponse.message}`);
