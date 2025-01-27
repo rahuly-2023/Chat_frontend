@@ -243,7 +243,6 @@ function Chat() {
         toast.error('Failed to send message')
       }
       finally{
-        console.log("finish")
         setServerTyping(false);
       }
   }
@@ -261,7 +260,6 @@ function Chat() {
     await SendMsg(message);
     setNewMessage(''); // Clear input
     try{
-      console.log("typing....");
       setServerTyping(true);
       socket.emit('sendMessage', message); // Send message to server
     }
