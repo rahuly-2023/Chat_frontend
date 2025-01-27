@@ -18,8 +18,10 @@ function Chat() {
   const [Sessionloading, setSessionLoading] = useState(false); // Loading state
   const [Msgloading, setMsgLoading] = useState(false); // Loading state
   const [buttonLoading, setButtonLoading] = useState(false); // Button-specific loading state
+  const [SendingbuttonLoading, setSendingButtonLoading] = useState(false); // Button-specific loading state
   const [scrollBehavior, setScrollBehavior] = useState('auto');
   const [isScrolledUp, setIsScrolledUp] = useState(false);
+  const [ServerTyping, setServerTyping] = useState(false);
   
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -49,7 +51,7 @@ function Chat() {
 
     // Listen for incoming messages
     socket.on('receiveMessage', (message) => {
-      SendMsg(message);
+        SendMsg(message);
     });
 
     return () => {
@@ -240,11 +242,17 @@ function Chat() {
       } catch (error) {
         toast.error('Failed to send message')
       }
+      finally{
+        console.log("finish")
+        setServerTyping(false);
+      }
   }
 
   const  handleSendMessage = async () => {
+    setSendingButtonLoading(true);
     if (!newMessage.trim()) {
       toast.error("Message can't be empty");
+      setSendingButtonLoading(false);
       return;
     }
     const message = { content: newMessage, type: 'sent', session: currentSession.documentId}; // Create message object
@@ -253,10 +261,14 @@ function Chat() {
     await SendMsg(message);
     setNewMessage(''); // Clear input
     try{
+      console.log("typing....");
+      setServerTyping(true);
       socket.emit('sendMessage', message); // Send message to server
     }
     catch{
       toast.error("Uh Oh! Server is sleeping. Failed to send message")
+    } finally{
+      setSendingButtonLoading(false);
     }
   };
 
@@ -395,6 +407,9 @@ function Chat() {
                   New Session
                 </button>
             </div>
+
+
+
             <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-rounded scrollbar-thumb-stone-100 scrollbar-track-slate-300 scroll-auto">
                 <div className="p-4">
                     <h2 className="text-2xl font-semibold mb-4 text-center">Chat Sessions</h2>
@@ -515,7 +530,7 @@ function Chat() {
                 
                 {/* Add toggle button */}
                 <button
-                  className=" text-2xl text-gray-500 md:hidden mr-10"
+                  className=" text-2xl text-gray-500 md:hidden mr-2"
                   onClick={() => setSidebarOpen(!sidebarOpen)}
                 >
                   ☰
@@ -527,14 +542,34 @@ function Chat() {
                 
                 <div className="flex items-center space-x-4">
                     <img className="w-10 h-10 rounded-full" src="https://i.pinimg.com/736x/45/fc/04/45fc047a4d037ea0e090b341a46ff4e9.jpg" alt="Travis Barker's profile picture" width="40" height="40" />
-                    <div>
-                        <h2 className="text-lg font-semibold">
-                          {currentSession ? currentSession.sessionName : 'Select a session'}
-                        </h2>
-                        {/* <span className="text-green-500">Online</span> */}
+                    <div className='flex flex-col'>
+                      <div>
+                          <h2 className="text-lg font-semibold">
+                            {currentSession ? currentSession.sessionName : 'Select a session'}
+                          </h2>
+                      </div>
+                      {ServerTyping ? 
+
+
+                      <div className='flex flex-row gap-0.5 justify-start'>
+                        <div className="text-green-500">
+                          Typing
+                        </div>
+
+                        <div className='flex space-x-1 justify-center items-end bg-white mb-0.5'>
+                          {/* <span class='sr-only'>Loading...</span> */}
+                          <div class='h-1 w-1 text-green-500 bg-green-500 rounded-full animate-bounce [animation-delay:-0.3s]'></div>
+                          <div class='h-1 w-1 text-green-500 bg-green-500 rounded-full animate-bounce [animation-delay:-0.15s]'></div>
+                          <div class='h-1 w-1 text-green-500 bg-green-500 rounded-full animate-bounce'></div>
+                        </div>
+                          
+                      </div>
+
+
+                        : <div className="text-green-500 flex-none">Online</div>
+                      }
                     </div>
                 </div>
-                <i className="fas fa-video text-gray-500"></i>
 
 
           
@@ -628,7 +663,7 @@ function Chat() {
             </div>
 
 
-            <div className="p-4 bg-white border-t flex items-center">
+            <div className="p-4 bg-white border-t flex items-center gap-4">
                 <input 
                     className="flex-1 p-2 border rounded"
                     type="text"
@@ -637,11 +672,51 @@ function Chat() {
                     onKeyPress={handleKeyPress}
                     placeholder="Type your message here..."
                 />
-                <button
+                {/* <button
                   onClick={handleSendMessage}
                   className="ml-4 text-green-500"
                 >
                   Send
+                </button> */}
+
+
+                <button
+                  // className="mt-2 text-sm text-blue-600 hover:text-blue-800 rounded p-2 bg-gray-200"
+                  onClick={handleSendMessage}
+                  className={`mr-1 h-11 flex-none green-500 content-center align-middle text-sm text-blue-600 hover:text-blue-800 rounded p-2 bg-gray-200 flex items-center ${
+                    SendingbuttonLoading ? 'cursor-not-allowed opacity-50' : ''
+                  }`}
+                  disabled={SendingbuttonLoading} // Disable the button while loading
+                >
+                  {SendingbuttonLoading ? (
+                    <svg
+                      className="animate-spin h-4 w-4 mr-2 ml-2 text-blue-600"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291l1.707-1.707L6 14l-4 4 4 4 1.707-1.707L6 18.293z"
+                      ></path>
+                    </svg>
+                  ): 
+
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="size-8">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                    </svg>
+                  
+                  }
+
                 </button>
             </div>
             
